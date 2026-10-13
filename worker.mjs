@@ -4,6 +4,26 @@
  * This is a narrowly scoped voucher-expiry bridge, not an arbitrary proxy.
  */
 const EXPIRY='2000-01-01T00:00:00Z';
+const VERSION='2026-10-13-redirect-fix-1';
+
+// Only fixed diagnostic categories leave this function. Never return or log raw
+// exception messages: they can contain voucher URLs, codes or credentials.
+function upstreamException(error) {
+ const name=String(error?.name||'');
+ const message=String(error?.message||'');
+ if(name==='TimeoutError'||name==='AbortError')
+  return ['UPSTREAM_TIMEOUT','The pretix request timed out.',504];
+ if(/invalid redirect value/i.test(message))
+  return ['INVALID_REDIRECT_MODE','The Worker used an unsupported redirect mode. Deploy the corrected worker.mjs.',502];
+ if(/\b1042\b|same[- ]zone|same[- ]account/i.test(message))
+  return ['UPSTREAM_ROUTING','Cloudflare rejected the upstream route. Check PRETIX_BASE_URL and Worker routing.',502];
+ if(/certificate|\bTLS\b|\bSSL\b/i.test(message))
+  return ['UPSTREAM_TLS','The upstream TLS connection failed. Check the pretix server hostname and certificate.',502];
+ if(/\bDNS\b|name resolution|resolve.*host|ENOTFOUND|EAI_AGAIN/i.test(message))
+  return ['UPSTREAM_DNS','The upstream hostname could not be resolved. Check PRETIX_BASE_URL.',502];
+ return ['UPSTREAM_EXCEPTION','The upstream request or response failed. Check the pretix server and its availability.',502];
+}
+
 function origin(value){const u=new URL(value);if(u.protocol!=='https:'||u.username||u.password||u.port||u.pathname!=='/'||u.search||u.hash||!u.hostname.includes('.')||/[\[\]\\\s]/.test(value))throw Error('Invalid origin');return u.origin;}
 function target(value){if(typeof value!=='string'||!/^[A-Za-z0-9_-]{1,128}\/[A-Za-z0-9_-]{1,128}$/.test(value))throw Error('Invalid target');return value;}
 async function equalSecret(a,b){const enc=new TextEncoder();const [ha,hb]=await Promise.all([crypto.subtle.digest('SHA-256',enc.encode(a)),crypto.subtle.digest('SHA-256',enc.encode(b))]);const x=new Uint8Array(ha),y=new Uint8Array(hb);let n=0;for(let i=0;i<x.length;i++)n|=x[i]^y[i];return n===0;}
@@ -35,7 +55,7 @@ export default {
   const auth=request.headers.get('Authorization')||'';
   if(!auth.startsWith('Bearer ')||auth.length>520||!await equalSecret(auth.slice(7),env.SCANNER_KEY))return json({error:'Authentication required.'},401,cors);
   if(u.search||u.hash)return json({error:'Query parameters are not supported.'},400,cors);
-  if(u.pathname==='/meta'&&request.method==='GET')return json({base:cfg.base,targets:cfg.targets},200,cors);
+  if(u.pathname==='/meta'&&request.method==='GET')return json({base:cfg.base,targets:cfg.targets,version:VERSION},200,cors);
   if(u.pathname!=='/voucher')return json({error:'Not found.'},404,cors);
   if(request.method!=='POST')return json({error:'Method not allowed.'},405,cors);
   if(!/^application\/json(?:;|$)/i.test(request.headers.get('Content-Type')||''))return json({error:'JSON required.'},415,cors);
@@ -47,13 +67,51 @@ export default {
   if(b.op!=='lookup'&&(!Number.isSafeInteger(b.id)||b.id<1))return json({error:'Invalid voucher ID.'},400,cors);
   const [org,event]=b.target.split('/');let url=cfg.base+`/api/v1/organizers/${encodeURIComponent(org)}/events/${encodeURIComponent(event)}/vouchers/`;
   if(b.op==='lookup')url+='?code='+encodeURIComponent(b.code);else url+=b.id+'/';
-  const headers={Accept:'application/json',Authorization:`Token ${env.PRETIX_TOKEN}`};const init={method:b.op==='expire'?'PATCH':'GET',headers,redirect:'error',signal:AbortSignal.timeout(15000)};
+  // Cloudflare workerd rejects redirect: 'error'. 'manual' is supported;
+  // reject redirects explicitly below instead of following them with the token.
+  const headers={Accept:'application/json',Authorization:`Token ${env.PRETIX_TOKEN}`};
+  const init={method:b.op==='expire'?'PATCH':'GET',headers,redirect:'manual'};
   if(b.op==='expire'){headers['Content-Type']='application/json';init.body=JSON.stringify({valid_until:EXPIRY});}
+
+  function fail(diagnostic,message,status=502,details={}) {
+   const requestId=crypto.randomUUID();
+   const data={
+    error:message+(b.op==='expire'?' An update may have succeeded; rescan in review mode to verify.':''),
+    diagnostic,request_id:requestId,operation:b.op,
+    update_uncertain:b.op==='expire',...details
+   };
+   // No headers, raw exceptions, response bodies, voucher codes, IDs or URLs.
+   console.error({event:'pretix_bridge_error',version:VERSION,diagnostic,
+    request_id:requestId,operation:b.op,http_status:status,...details});
+   return json(data,status,cors);
+  }
+
   try{
+   init.signal=AbortSignal.timeout(15000);
    const response=await fetch(url,init);
-   if(!response.ok)return json({error:'pretix request failed.',status:response.status},response.status>=400&&response.status<=599?response.status:502,cors);
-   const text=await bodyText(response,2000000);let data;try{data=JSON.parse(text);}catch{return json({error:'pretix returned invalid JSON.'},502,cors);}
+   if(response.status>=300&&response.status<400){
+    if(response.body)await response.body.cancel();
+    return fail('UPSTREAM_REDIRECT',
+     'The pretix API address returned a redirect. Set PRETIX_BASE_URL to the canonical API origin; redirects are not followed.',
+     502,{upstream_status:response.status});
+   }
+   if(!response.ok){
+    if(response.body)await response.body.cancel();
+    return fail('UPSTREAM_HTTP',`pretix returned HTTP ${response.status}.`,
+     response.status>=400&&response.status<=599?response.status:502,
+     {status:response.status,upstream_status:response.status});
+   }
+   const text=await bodyText(response,2000000);
+   let data;
+   try{data=JSON.parse(text);}catch{
+    return fail('UPSTREAM_INVALID_JSON',
+     'The upstream response was not valid JSON. Check that PRETIX_BASE_URL is the pretix API server, not a landing page.',
+     502,{upstream_status:response.status});
+   }
    return json(data,200,cors);
-  }catch{return json({error:'Upstream connection failed or timed out. An update may have succeeded; rescan to verify.'},502,cors);}
+  }catch(error){
+   const [diagnostic,message,status]=upstreamException(error);
+   return fail(diagnostic,message,status);
+  }
  }
 };

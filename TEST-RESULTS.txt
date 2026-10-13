@@ -1,0 +1,218 @@
+TAP version 13
+# Subtest: metadata identifies the corrected version
+ok 1 - metadata identifies the corrected version
+  ---
+  duration_ms: 27.100963
+  type: 'test'
+  ...
+# Subtest: workerd-style guard rejects old redirect option before sending, accepts corrected option
+ok 2 - workerd-style guard rejects old redirect option before sending, accepts corrected option
+  ---
+  duration_ms: 9.569076
+  type: 'test'
+  ...
+# Subtest: redirect 301 is explicitly rejected with no follow-up request or credential leak
+ok 3 - redirect 301 is explicitly rejected with no follow-up request or credential leak
+  ---
+  duration_ms: 2.508852
+  type: 'test'
+  ...
+# Subtest: redirect 302 is explicitly rejected with no follow-up request or credential leak
+ok 4 - redirect 302 is explicitly rejected with no follow-up request or credential leak
+  ---
+  duration_ms: 2.761882
+  type: 'test'
+  ...
+# Subtest: redirect 303 is explicitly rejected with no follow-up request or credential leak
+ok 5 - redirect 303 is explicitly rejected with no follow-up request or credential leak
+  ---
+  duration_ms: 1.805154
+  type: 'test'
+  ...
+# Subtest: redirect 307 is explicitly rejected with no follow-up request or credential leak
+ok 6 - redirect 307 is explicitly rejected with no follow-up request or credential leak
+  ---
+  duration_ms: 1.320626
+  type: 'test'
+  ...
+# Subtest: redirect 308 is explicitly rejected with no follow-up request or credential leak
+ok 7 - redirect 308 is explicitly rejected with no follow-up request or credential leak
+  ---
+  duration_ms: 1.365373
+  type: 'test'
+  ...
+# Subtest: invalid JSON has a distinct diagnosis and never exposes the upstream page
+ok 8 - invalid JSON has a distinct diagnosis and never exposes the upstream page
+  ---
+  duration_ms: 1.740306
+  type: 'test'
+  ...
+# Subtest: upstream HTTP statuses remain distinct from Worker exceptions
+ok 9 - upstream HTTP statuses remain distinct from Worker exceptions
+  ---
+  duration_ms: 6.089325
+  type: 'test'
+  ...
+# Subtest: classifies UPSTREAM_TIMEOUT without exposing raw exception text
+ok 10 - classifies UPSTREAM_TIMEOUT without exposing raw exception text
+  ---
+  duration_ms: 2.503173
+  type: 'test'
+  ...
+# Subtest: classifies UPSTREAM_DNS without exposing raw exception text
+ok 11 - classifies UPSTREAM_DNS without exposing raw exception text
+  ---
+  duration_ms: 1.3035
+  type: 'test'
+  ...
+# Subtest: classifies UPSTREAM_TLS without exposing raw exception text
+ok 12 - classifies UPSTREAM_TLS without exposing raw exception text
+  ---
+  duration_ms: 0.973503
+  type: 'test'
+  ...
+# Subtest: classifies UPSTREAM_ROUTING without exposing raw exception text
+ok 13 - classifies UPSTREAM_ROUTING without exposing raw exception text
+  ---
+  duration_ms: 1.139483
+  type: 'test'
+  ...
+# Subtest: classifies UPSTREAM_EXCEPTION without exposing raw exception text
+ok 14 - classifies UPSTREAM_EXCEPTION without exposing raw exception text
+  ---
+  duration_ms: 1.105351
+  type: 'test'
+  ...
+# Subtest: exceptions containing secrets, codes and arbitrary objects are not logged verbatim
+ok 15 - exceptions containing secrets, codes and arbitrary objects are not logged verbatim
+  ---
+  duration_ms: 1.878895
+  type: 'test'
+  ...
+# Subtest: an unconfirmed expiry warns of possible change and never retries automatically
+ok 16 - an unconfirmed expiry warns of possible change and never retries automatically
+  ---
+  duration_ms: 1.652355
+  type: 'test'
+  ...
+# Subtest: response size limit still rejects oversized data
+ok 17 - response size limit still rejects oversized data
+  ---
+  duration_ms: 1.095216
+  type: 'test'
+  ...
+# Subtest: bridge metadata contains no secrets
+ok 18 - bridge metadata contains no secrets
+  ---
+  duration_ms: 25.383713
+  type: 'test'
+  ...
+# Subtest: bridge rejects wrong origin even with valid key
+ok 19 - bridge rejects wrong origin even with valid key
+  ---
+  duration_ms: 0.50525
+  type: 'test'
+  ...
+# Subtest: bridge rejects missing or wrong key
+ok 20 - bridge rejects missing or wrong key
+  ---
+  duration_ms: 1.621808
+  type: 'test'
+  ...
+# Subtest: bridge allows preflight without authentication
+ok 21 - bridge allows preflight without authentication
+  ---
+  duration_ms: 0.594183
+  type: 'test'
+  ...
+# Subtest: bridge rejects unsafe preflight
+ok 22 - bridge rejects unsafe preflight
+  ---
+  duration_ms: 0.429626
+  type: 'test'
+  ...
+# Subtest: bridge fails closed when unconfigured
+ok 23 - bridge fails closed when unconfigured
+  ---
+  duration_ms: 0.312981
+  type: 'test'
+  ...
+# Subtest: bridge rejects event outside allowlist
+ok 24 - bridge rejects event outside allowlist
+  ---
+  duration_ms: 4.119823
+  type: 'test'
+  ...
+# Subtest: bridge rejects arbitrary operation
+ok 25 - bridge rejects arbitrary operation
+  ---
+  duration_ms: 1.31035
+  type: 'test'
+  ...
+# Subtest: bridge rejects arbitrary request destination
+ok 26 - bridge rejects arbitrary request destination
+  ---
+  duration_ms: 1.240996
+  type: 'test'
+  ...
+# Subtest: bridge rejects arbitrary fields on update
+ok 27 - bridge rejects arbitrary fields on update
+  ---
+  duration_ms: 2.252546
+  type: 'test'
+  ...
+# Subtest: bridge rejects traversal and negative IDs
+ok 28 - bridge rejects traversal and negative IDs
+  ---
+  duration_ms: 2.461852
+  type: 'test'
+  ...
+# Subtest: bridge rejects oversized payload
+ok 29 - bridge rejects oversized payload
+  ---
+  duration_ms: 1.254727
+  type: 'test'
+  ...
+# Subtest: bridge rejects client query string
+ok 30 - bridge rejects client query string
+  ---
+  duration_ms: 0.582536
+  type: 'test'
+  ...
+# Subtest: bridge fixed update reaches only configured API with server token
+ok 31 - bridge fixed update reaches only configured API with server token
+  ---
+  duration_ms: 2.011103
+  type: 'test'
+  ...
+# Subtest: bridge lookup encodes exact code
+ok 32 - bridge lookup encodes exact code
+  ---
+  duration_ms: 1.006694
+  type: 'test'
+  ...
+# {
+#   event: 'pretix_bridge_error',
+#   version: '2026-10-13-redirect-fix-1',
+#   diagnostic: 'UPSTREAM_HTTP',
+#   request_id: '999fb8e2-ad0f-41fc-aee2-4612ee97eff0',
+#   operation: 'read',
+#   http_status: 403,
+#   status: 403,
+#   upstream_status: 403
+# }
+# Subtest: bridge never sends upstream error text to browser
+ok 33 - bridge never sends upstream error text to browser
+  ---
+  duration_ms: 1.711253
+  type: 'test'
+  ...
+1..33
+# tests 33
+# suites 0
+# pass 33
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 129.978422
